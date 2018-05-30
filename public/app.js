@@ -2,6 +2,16 @@
 
   var app = angular.module('app', ['ngRoute', 'angular-jwt']);
 
+  app.run(function($http,$rootScope) {
+    http.defaults.headers.common.Authorization = 'Bearer '+ $window.localStorage.token;
+    $rootScope.$on('$routeChangeStart',(event,nextRoute,currentRoute)=>{
+      if(nextRoute.access.restricted !== undefined && nextRoute.access.restricted === true)
+
+
+      
+    })
+  });
+
   app.config(function($routeProvider, $locationProvider) {
 
     $locationProvider.html5Mode(true);
@@ -70,9 +80,24 @@
   }
 
   app.controller('LoginController', LoginController);
-  function LoginController($location, $window) {
+  function LoginController($location, $window, $http) {
     var vm = this;
     vm.title = 'LoginController';
+
+    vm.login = ()=> {
+      if(vm.user){
+        $http.post('/api/login',vm.user).then((response)=>{
+          console.log(response);
+          console.log("success in logging in");
+          $window.localStorage.token = response.data;
+          $location.path('/profile');
+        },(err)=>{
+          vm.err = err;
+        });
+      }else {
+        console.log('No credentials supplied !');
+      }
+    }
   }
 
   app.controller('RegisterController', RegisterController);
@@ -88,9 +113,10 @@
       }
       $http.post('/api/register',vm.user)
         .then(function(response) { //promises
-          console.log(response);
+          $window.localStorage.token = response.data;
+          $location.path('/profile');
         }, function(err) {
-          vm.err = err.data.message;
+          vm.err = err.data.errmsg;
           console.log(err);
         });
     }
@@ -109,9 +135,16 @@
   }
 
   app.controller('ProfileController', ProfileController);
-  function ProfileController($location, $window) {
+  function ProfileController($location, $window, jwtHelper) {
     var vm = this;
     vm.title = 'ProfileController';
+    vm.user=null;
+    var token = $window.localStorage.token;
+    var payload = jwtHelper.decodeToken(token).data;
+    if(payload){
+      vm.user=payload;
+    }
+
   }
 
 
